@@ -10,7 +10,7 @@ import scalariform.formatter.preferences._
 
 name := "play-html-compressor"
 
-version := "0.6.3"
+version := "0.7.1"
 
 libraryDependencies ++= Seq(
   "com.googlecode.htmlcompressor" % "htmlcompressor" % "1.5.2",
@@ -61,9 +61,9 @@ pomExtra := pom
 // Compiler settings
 //*******************************
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.12.2"
 
-crossScalaVersions := Seq("2.11.8")
+crossScalaVersions := Seq("2.12.2", "2.11.11")
 
 scalacOptions ++= Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
@@ -80,6 +80,10 @@ scalacOptions ++= Seq(
 
 // Allow dead code in tests (to support using mockito).
 scalacOptions in Test ~= { (options: Seq[String]) => options filterNot ( _ == "-Ywarn-dead-code" ) }
+
+javacOptions ++= Seq(
+  "-Xlint:deprecation"
+)
 
 //*******************************
 // Scalariform settings

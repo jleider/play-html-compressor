@@ -44,7 +44,7 @@ abstract class CompressorFilter[C <: Compressor] extends Filter {
   /**
    * The charset used by Play.
    */
-  lazy val charset = configuration.getString("default.charset").getOrElse("utf-8")
+  lazy val charset = configuration.getOptional[String]("default.charset").getOrElse("utf-8")
 
   /**
    * Materializer for the Filter.
@@ -88,15 +88,25 @@ abstract class CompressorFilter[C <: Compressor] extends Filter {
 
     if (isCompressible(result)) {
       result.body match {
-        case HttpEntity.Strict(data, contentType) =>
-          Future.successful(Result(result.header, HttpEntity.Strict(ByteString(compress(data)), contentType)))
-        case HttpEntity.Streamed(data, _, contentType) =>
-          data.toMat(Sink.fold(ByteString())(_ ++ _))(Keep.right).run() map { bytes =>
+        case body0: HttpEntity.Strict =>
+          Future.successful(
+            result.copy(
+              body = body0.copy(
+                data = ByteString(compress(body0.data))
+              )
+            )
+          )
+        case body0: HttpEntity.Streamed =>
+          for {
+            bytes <- body0.data.toMat(Sink.fold(ByteString())(_ ++ _))(Keep.right).run()
+          } yield {
             val compressed = compress(bytes)
             val length = compressed.length
-            Result(
-              result.header.copy(headers = result.header.headers),
-              HttpEntity.Streamed(Source.single(ByteString(compressed)), Some(length.toLong), result.body.contentType)
+            result.copy(
+              body = body0.copy(
+                data = Source.single(ByteString(compressed)),
+                contentLength = Some(length.toLong)
+              )
             )
           }
         case _ =>
